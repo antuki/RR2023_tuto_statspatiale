@@ -4,7 +4,7 @@ Kim Antunez (@antuki) et Etienne Côme (@comeetie)
 
 **Durée :** 2 heures
 
-Cet atelier, animé lors des [rencontres R 2023] à Avignon, est composé de deux parties :
+Cet atelier, animé lors des [rencontres R 2023](https://rr2023.sciencesconf.org/) à Avignon, est composé de deux parties :
 
 - Un [cours magistral](lecture/lecture.html) ;
 - Un [tutoriel](exercises/exercises.html)  
