@@ -13,6 +13,23 @@ editor_options:
   chunk_output_type: console
 ---
 
+```{r installPackages, echo=FALSE, include=FALSE}
+## Liste des librairies utilisées
+packages <- c("dplyr", "mapview", "sf", "osmdata",
+              "RColorBrewer", "ggplot2", "readr",
+              "ggspatial", "sfnetworks", "tidygraph", "remotes")
+## Vérifier si la librairie est installée, si non l'installer, puis la charger
+package.check <- lapply(
+  packages,
+  FUN = function(x) {
+    if (!require(x, character.only = TRUE)) {
+      install.packages(x, dependencies = TRUE)
+      library(x, character.only = TRUE)
+    }
+  }
+)
+```
+
 # L'écosystème spatial sur R 
 
 ## Introduction à `sf` 

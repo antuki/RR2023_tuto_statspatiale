@@ -66,6 +66,23 @@ knitr::opts_template$set(clues = list(box.title = "Indices",
                                       box.collapse = TRUE))
 ```
 
+```{r installPackages, echo=FALSE, include=FALSE}
+## Liste des librairies utilisées
+packages <- c("dplyr", "mapview", "sf", "osmdata",
+              "RColorBrewer", "ggplot2", "readr",
+              "ggspatial", "sfnetworks", "tidygraph", "remotes")
+## Vérifier si la librairie est installée, si non l'installer, puis la charger
+package.check <- lapply(
+  packages,
+  FUN = function(x) {
+    if (!require(x, character.only = TRUE)) {
+      install.packages(x, dependencies = TRUE)
+      library(x, character.only = TRUE)
+    }
+  }
+)
+```
+
 La base de données utilisée dans ce TP concerne la **géolocalisation des accidents de la route** à Paris. Il s'agit plus précisément des
 [bases de données annuelles des accidents corporels de la circulation routière](https://www.data.gouv.fr/fr/datasets/bases-de-donnees-annuelles-des-accidents-corporels-de-la-circulation-routiere-annees-de-2005-a-2019/), en particulier le millésime 2019. 
 
