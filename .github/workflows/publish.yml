@@ -43,7 +43,7 @@ jobs:
         run: |
           mkdir build
           cp -R lecture/* build
-          cp -R exercices/* build
+          cp -R exercises/* build
           
       - name: Push to gh-pages branch
         uses: crazy-max/ghaction-github-pages@v2
