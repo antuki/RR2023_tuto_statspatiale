@@ -1,0 +1,12 @@
+knitr
+dplyr
+mapview
+sf
+osmdata
+RColorBrewer
+ggplot2
+readr
+ggspatial
+sfnetworks
+tidygraph
+remotes
