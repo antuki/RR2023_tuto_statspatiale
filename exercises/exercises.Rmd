@@ -45,7 +45,7 @@ knit_hooks$set(sm = function(before, options, envir){
 # boxes custom
 #remotes::install_github("koncina/unilur")
 knitr::opts_template$set(alert = list(box.title = "Watch out!",
-                                      box.body = list(fill = "#ffe0d9", colour = "black"),
+                                      box.body = list(fill = "#ffe0d9", colour = "black"), 
                                       box.header = list(fill = "#FFAD99", colour = "black"),
                                       box.collapse = NULL,
                                       box.icon = "fa-exclamation-triangle"))
