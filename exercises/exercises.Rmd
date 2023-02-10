@@ -748,7 +748,7 @@ plot(map_ggplot)
 
 # Exercice 4 [BONUS] : Données Airbnb
 
-Ce dernier exercice s'appuie sur les données des listings Airbnb à Paris. 
+Ce dernier exercice s'appuie sur les données des listings Airbnb à Paris.  
 
 Elle sont disponibles sur le site [Inside Airbnb](http://insideairbnb.com/).
 
