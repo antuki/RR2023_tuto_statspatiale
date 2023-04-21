@@ -2,9 +2,11 @@
 title: "**Atelier R** Statistique spatiale et Cartographie"
 subtitle: "**Rencontres R** Juin 2023"
 author: "Kim Antunez, Etienne Côme"
+institute: "Timothée Giraud"
 lang: fr
 language:
  title-block-author-single: Auteurs
+ title-block-affiliation-single: avec la participation de
 format:
   html:
     toc: true
@@ -85,7 +87,7 @@ Obtenir la projection en utilisant `st_crs()` ([code epsg](https://epsg.io/)) et
 mtq_4326 <- mtq |> st_transform(4326)
 ```
 
-! sf utilise la géométrie sphérique par défaut pour les données non projetées depuis la version 1.0 grâce a la librairie `s2`. Voir (https://r-spatial.github.io/sf/articles/sf7.html)[https://r-spatial.github.io/sf/articles/sf7.html] pour plus de détails.
+`sf` utilise la géométrie sphérique par défaut pour les données non projetées depuis la version 1.0 grâce à la librairie `s2`. Voir sur [https://r-spatial.github.io](https://r-spatial.github.io/sf/articles/sf7.html) pour plus de détails.
 
 
 ## Afficher les données
@@ -866,7 +868,9 @@ ggplot() +
 
 - [`banR`](https://github.com/joelgombin/banR) et [`tidygeocoder`](https://github.com/jessecambon/tidygeocoder)
 
-```{r}
+<!-- evaluation désactivée en raison d'un bug de timeout en intégration continue -->
+
+```{r, eval=FALSE}
 library(dplyr, warn.conflicts = FALSE)
 library(tidygeocoder)
 
