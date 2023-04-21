@@ -31,13 +31,13 @@ jobs:
           Rscript -e 'install.packages("rgeos", repos="http://R-Forge.R-project.org", type="source")'
           Rscript -e 'install.packages("rgdal", repos="http://R-Forge.R-project.org", type="source")'
           Rscript -e 'install.packages("sf", type = "mac.binary")'
-          Rscript -e 'install.packages(c("rmarkdown","rmdformats","mapview"))' #,"quarto"
-          Rscript -e "remotes::install_github('koncina/unilur')"
+          Rscript -e 'install.packages(c("sfnetworks","osmdata","tidygeocoder"))'
+          Rscript -e 'install.packages(c("rmarkdown","rmdformats","mapview","quarto"))' #,"quarto"
 
       - name: Render Rmd
         run: |
-          Rscript -e "rmarkdown::render('lecture/lecture.Rmd')"
-          Rscript -e "rmarkdown::render('exercises/exercises.Rmd')"
+          Rscript -e "quarto::quarto_render('lecture/lecture.qmd')"
+          Rscript -e "quarto::quarto_render('exercises/exercises.qmd')"
 
       - name: Publish html
         run: |
