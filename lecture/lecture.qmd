@@ -1,0 +1,951 @@
+---
+title: "**Atelier R** Statistique spatiale et Cartographie"
+author: "Kim Antunez, Etienne Côme"
+date: "**Rencontres R** Juin 2023"
+lang: fr
+format:
+  html:
+    toc: true
+    html-math-method: katex
+  revealjs: 
+    theme: default
+---
+
+```{r installPackages, echo=FALSE, include=FALSE}
+## Liste des librairies utilisées
+packages <- c("dplyr", "mapview", "sf", "osmdata",
+              "RColorBrewer", "ggplot2", "readr",
+              "ggspatial", "sfnetworks", "tidygraph", "remotes")
+## Vérifier si la librairie est installée, si non l'installer, puis la charger
+package.check <- lapply(
+  packages,
+  FUN = function(x) {
+    if (!require(x, character.only = TRUE)) {
+      install.packages(x, dependencies = TRUE)
+      library(x, character.only = TRUE)
+    }
+  }
+)
+```
+
+# L'écosystème spatial sur R 
+
+## Introduction à `sf` 
+
+* Site web de `sf`: [Simple Features for R](https://r-spatial.github.io/sf/index.html)
+
+* sf pour Simple Features
+
+* A pour but de rassembler les fonctionnalités d'anciens packages (`sp`, `rgeos` and `rgdal`) en un seul
+
+* Facilite la manipulation de données spatiales, avec des objets simples. 
+* [Tidy data](http://vita.had.co.nz/papers/tidy-data.html): compatible avec la syntaxe pipe ` |> ` et les opérateurs du `tidyverse`.
+
+* Principal auteur et mainteneur : Edzer Pebesma (également auteur du package `sp`)
+
+
+## Structure d'un objets sf : 
+
+<img src="img/sf.png" alt="format sf" width="100%">
+
+
+## Importer / exporter des données 
+```{r,echo=TRUE,comments=FALSE}
+library(sf)
+#importer
+mtq <- read_sf("data/mtq/martinique.shp")
+mtq <- st_read("data/mtq/martinique.shp")
+```
+
+```{r, eval=FALSE,echo=TRUE}
+#exporter
+write_sf(mtq,"data/mtq/martinique.gpkg",delete_layer = TRUE)
+st_write(mtq,"data/mtq/martinique.gpkg",delete_layer = TRUE)
+```
+
+Le format gpkg (geopackage) est ouvert (non lié à un système d’exploitation) et implémenté sous la forme d’une base de données SQLite.
+
+## Système de coordonnées
+Les projections/système de coordonées sont répertoriées grâce à un code appelé code epsg :
+
+- lat/long : 4326 https://epsg.io/4326
+- Lambert 93 : 2154 https://epsg.io/2154
+- Pseudo-Mercator : 3857 https://epsg.io/3857
+- Lambert azimuthal equal area : 3035 https://epsg.io/3035
+
+## Projection 
+
+Obtenir la projection en utilisant `st_crs()` ([code epsg](https://epsg.io/)) et la modifier en utilisant `st_transform()`.
+
+```{r}
+# st_crs(mtq)
+mtq_4326 <- mtq |> st_transform(4326)
+```
+
+! sf utilise la géométrie sphérique par défaut pour les données non projetées depuis la version 1.0 grâce a la librairie `s2`. Voir (https://r-spatial.github.io/sf/articles/sf7.html)[https://r-spatial.github.io/sf/articles/sf7.html] pour plus de détails.
+
+
+## Afficher les données
+
+Affichage par défaut : 
+
+```{r, nm=TRUE}
+plot(mtq)
+```
+
+##
+En ne gardant que la géométrie : 
+
+```{r, nm=TRUE}
+plot(st_geometry(mtq))
+```
+
+## Extraire les centroïdes
+
+```{r, nm=TRUE}
+mtq_c <- st_centroid(mtq) 
+plot(st_geometry(mtq))
+plot(st_geometry(mtq_c), add=TRUE, cex=1.2, col="red", pch=20)
+```
+
+## Matrice de distance
+```{r, nm=TRUE}
+mat <- st_distance(x=mtq_c,y=mtq_c)
+mat[1:5,1:5]
+```
+
+## Agrégation de polygones 
+
+Union simple  : 
+```{r, nm=TRUE}
+mtq_u <- st_union(mtq)
+plot(st_geometry(mtq), col="lightblue")
+plot(st_geometry(mtq_u), add=T, lwd=2, border = "red")
+```
+
+A partir d'une variable de regroupement : 
+
+```{r, nm=TRUE}
+library(dplyr)
+mtq_u2 <- mtq |> 
+  group_by(STATUT) |> 
+  summarize(P13_POP = sum(P13_POP))
+plot(st_geometry(mtq), col="lightblue")
+plot(st_geometry(mtq_u2), add=T, lwd=2, border = "red", col=NA)
+```
+
+## Zone tampon 
+
+```{r, nm=TRUE}
+mtq_b <- st_buffer(x = mtq_u, dist = 5000)
+plot(st_geometry(mtq), col="lightblue")
+plot(st_geometry(mtq_u), add=T, lwd=2)
+plot(st_geometry(mtq_b), add=T, lwd=2, border = "red")
+```
+
+## Intersection de polygones 
+
+```{r, nm=TRUE}
+# create a polygon
+m <- rbind(c(700015,1624212), c(700015,1641586), c(719127,1641586), 
+           c(719127,1624212), c(700015,1624212))
+p <- st_sf(st_sfc(st_polygon(list(m))), crs = st_crs(mtq))
+plot(st_geometry(mtq))
+plot(p, border="red", lwd=2, add=T)
+```
+
+`st_intersection()` extrait la partie de `mtq` qui s'intersecte avec le polygone créé.  
+
+```{r, nm=TRUE, warning=F}
+mtq_z <- st_intersection(x = mtq, y = p)
+plot(st_geometry(mtq))
+plot(st_geometry(mtq_z), col="red", border="green", add=T)
+```
+
+
+## Compter les points dans des polygones  
+
+`st_sample()` crée des points aléatoires sur la carte. 
+
+```{r , echo = FALSE}
+set.seed(1) #Fixer l'aléa pour toujours faire la même carte.
+```
+
+```{r, nm=TRUE}
+pts <- st_sample(x = mtq, size = 50)
+plot(st_geometry(mtq))
+plot(pts, pch = 20, col = "red", add=TRUE, cex = 1)
+```
+
+
+`st_join` Jointure spatiale et agrégation, possibilité de contrôler finement la jointure (points sur les frontières,...) avec l'argument `join` qui par défaut est fixé à `st_intersects()` voir (https://en.wikipedia.org/wiki/DE-9IM)[https://en.wikipedia.org/wiki/DE-9IM] pour uné définition précise des prédicats spatiaux possibles. 
+
+
+```{r p0, nm=TRUE}
+mtq_counts <- mtq |> st_join(st_as_sf(pts)) |> count(INSEE_COM)
+plot(mtq_counts |> select(n))
+plot(pts, pch = 20, col = "red", add=TRUE, cex = 1)
+```
+
+
+  
+## Polygones de Voronoï
+
+
+<small>google: "st_voronoi R sf" (https://github.com/r-spatial/sf/issues/474 & https://stackoverflow.com/questions/45719790/create-voronoi-polygon-with-simple-feature-in-r)
+</small>
+
+Un diagramme de Voronoï est un découpage du plan en cellules (régions adjacentes, appelées polygones de Voronoï) à partir d'un ensemble discret de points. Chaque cellule enferme un seul point, et forme l'ensemble des points du plan plus proches de ce point que d'aucun autre. 
+
+```{r, echo=TRUE,warning=FALSE,message=FALSE,fig.show='last',fig.height=4.5}
+mtq_v <- st_collection_extract(st_voronoi(x = st_union(mtq_c)))
+mtq_v <- st_intersection(mtq_v, st_union(mtq))
+mtq_v <- st_join(x = st_sf(mtq_v), y = mtq_c)
+plot(st_geometry(mtq_v), col='lightblue')
+```
+
+
+## Autres traitements
+
+- st_area(x)
+- st_length(x)
+- st_disjoint(x, y, sparse = FALSE)
+- st_touches(x, y, sparse = FALSE)
+- st_crosses(s, s, sparse = FALSE)
+- st_within(x, y, sparse = FALSE)
+- st_contains(x, y, sparse = FALSE)
+- st_overlaps(x, y, sparse = FALSE)
+- st_equals(x, y, sparse = FALSE)
+- st_covers(x, y, sparse = FALSE)
+- st_covered_by(x, y, sparse = FALSE)
+- st_covered_by(y, y, sparse = FALSE)
+- st_equals_exact(x, y,0.001, sparse = FALSE)
+- ...
+
+## Conversion
+- st_cast 
+- st_collection_extract
+- st_sf
+- st_as_sf
+- st_as_sfc
+
+
+
+
+<!-- # Préparer / récupérer des données  -->
+
+<!-- Dans ce premier exemple, les données sont stockées dans un fichier shapefile.  -->
+
+<!-- ```{r, eval=TRUE,cache=FALSE} -->
+<!-- library(sf) -->
+<!-- library(dplyr) -->
+<!-- # Import de la couche géographique (iris de Paris) -->
+<!-- iris.75 <- st_read("data/iris_75.shp", stringsAsFactors = F)  -->
+<!-- ``` -->
+
+<!-- Regardons la projection utilisée :  -->
+
+<!-- ```{r, eval=TRUE,cache=FALSE} -->
+<!-- st_crs(iris.75) -->
+<!-- ``` -->
+
+<!-- Dans ce second exemple, il s'agit de données ponctuelles stockées dans un fichier csv avec deux colonnes (latitude et longitude en WGS84). Dans ce cas, on importe le csv puis on convertit le `data.frame` en `data.frame` spatial (`sf`) grâce à la fonction `st_as_sf`. Il suffit de spécifier le nom des colonnes contenant les coordonnées ainsi que le CRS. Généralement, on utilisera le code epsg de WGS84 (4326). -->
+
+<!-- ```{r, eval=TRUE,cache=FALSE, fig.height=5} -->
+<!-- # Import du dataset   -->
+<!-- accidents.2019.paris <- readRDS("data/accidents2019_paris.RDS") -->
+<!-- # Transformation en objet sf -->
+<!-- accidents.2019.paris <- st_as_sf(accidents.2019.paris, -->
+<!--                                 coords = c("long", "lat"), -->
+<!--                                 crs = 4326, agr = "constant") |>  -->
+<!--   st_transform(2154) -->
+<!-- plot(st_geometry(accidents.2019.paris)) -->
+<!-- ``` -->
+
+
+
+<!-- Regardons rapidement ces deux jeux de données. -->
+
+<!-- Tout d'abord, localisons les personnes accidentées selon la gravité des leurs blessures -->
+
+<!-- ```{r, eval=TRUE,cache=FALSE, fig.height=5} -->
+<!-- plot(st_geometry(iris.75)) -->
+<!-- # Les personnes non blessées ou blessées légèrement -->
+<!-- plot(accidents.2019.paris |> filter(grav%in%c(1,4)) |> st_geometry, -->
+<!--      pch = 20, col = "darkgreen", add=TRUE, cex = 0.5) -->
+<!-- # Les personnes blessées gravement -->
+<!-- plot(accidents.2019.paris |> filter(grav == 3) |> st_geometry, -->
+<!--      pch = 20, col = "orange", add=TRUE, cex = 0.5) -->
+<!-- # Les personnes tuées -->
+<!-- plot(accidents.2019.paris |> filter(grav == 2) |> st_geometry, -->
+<!--      pch = 20, col = "red", add=TRUE, cex = 1) -->
+<!-- ``` -->
+
+<!-- Comptons par iris :  -->
+
+<!-- 1. le nombre de personnes accidentées (`nbacc`) ; -->
+<!-- 1. le nombre de personnes accidentées qui ont été gravement blessées ou tuées (`nbacc_blessgravtues`). -->
+
+<!-- ```{r, eval=TRUE,cache=FALSE, fig.height=5} -->
+<!-- inter <- st_intersects(iris.75, accidents.2019.paris) -->
+<!-- inter_blessgravtues <- st_intersects(iris.75, accidents.2019.paris -->
+<!--                               |> filter(grav%in%c(2,3))) -->
+<!-- iris.75$nbacc <- sapply(X = inter, FUN = length) -->
+<!-- iris.75$nbacc_blessgravtues <- sapply(X = inter_blessgravtues, FUN = length) -->
+
+<!-- #Remarque : Il manque 24 accidents -->
+<!-- nrow(accidents.2019.paris)-sum(iris.75$nbacc) -->
+<!-- ``` -->
+
+<!-- ## Utiliser `osmdata` -->
+
+
+<!-- `osmdata` permet d'extraire des éléments de la base de données gratuite et open-source OpenStreetMap. Cela peut nous servir par exemple pour récupérer des élements d'habillage : fleuves, routes ou autres informations. -->
+
+<!-- La requête suit la nomenclature OSM sur base de [clés / valeurs](https://wiki.openstreetmap.org/wiki/Tags). Vous pouvez utiliser [tagingo](https://taginfo.openstreetmap.org/) pour explorer l'ensemble des clés et valeurs utilisées par la communauté OSM. -->
+
+<!-- ```{r, eval=FALSE,cache=FALSE} -->
+<!-- library(osmdata) -->
+<!-- # Récupérer les routes principales grâce à osm -->
+<!-- bb      <- iris.75 |> st_transform(4326) |> st_bbox() -->
+<!-- q       <- opq(bbox = bb,timeout = 180) -->
+<!-- qm      <- add_osm_feature (q, key = 'highway', -->
+<!--                             value = 'motorway', value_exact = FALSE) -->
+<!-- qt      <- add_osm_feature (q, key = 'highway', -->
+<!--                             value = 'trunk', value_exact = FALSE) -->
+<!-- qp      <- add_osm_feature (q, key = 'highway', -->
+<!--                             value = 'primary', value_exact = FALSE) -->
+
+<!-- motorway<- osmdata_sf(qm) -->
+<!-- trunk   <- osmdata_sf(qt) -->
+<!-- primary <- osmdata_sf(qp) -->
+
+<!-- roads    <- c(primary,trunk,motorway)$osm_lines |> -->
+<!--   st_transform(st_crs(iris.75)) -->
+<!-- roads.geom = st_geometry(roads) -->
+
+<!-- # Récupérer le shape de la seine  -->
+<!-- qr <- q |>  -->
+<!--   add_osm_feature (key = 'waterway') |>  -->
+<!--   add_osm_feature(key = "name:fr", value = "La Seine") -->
+<!-- river <- osmdata_sf(qr) -->
+
+<!-- river.geom <- c(st_geometry(river$osm_lines), -->
+<!--                 st_geometry(river$osm_multilines)) |> -->
+<!--   st_transform(st_crs(iris.75)) -->
+
+<!-- # Export road and river layers to shapefile -->
+<!-- st_write(roads|> select(name,osm_id), dsn = "data/osmdata/roadsfull.gpkg") -->
+<!-- st_write(roads.geom, dsn = "data/osmdata/road.shp") -->
+<!-- st_write(river.geom, dsn = "data/osmdata/river.shp") -->
+<!-- ``` -->
+
+<!-- ```{r , echo = FALSE} -->
+<!-- roads <- st_read(dsn = "data/osmdata/roadsfull.gpkg", quiet = TRUE) -->
+<!-- roads.geom <- st_read(dsn = "data/osmdata/road.shp", quiet = TRUE) -->
+<!-- river.geom <- st_read(dsn = "data/osmdata/river.shp", quiet = TRUE) -->
+<!-- ``` -->
+
+
+<!-- Utilisons ces données pour habiller un peu notre carte : -->
+
+<!-- ```{r, eval=TRUE,cache=FALSE, fig.height=4.75} -->
+<!-- # bbox est utilisé pour centrer sur Paris -->
+<!-- bb <- st_bbox(iris.75) -->
+<!-- par(mar = c(0.2, 0.2, 1.4, 0.2), bg = "ivory") -->
+<!-- plot(st_geometry(iris.75), col = "ivory", border = "ivory3",  -->
+<!--      xlim = bb[c(1,3)], ylim =  bb[c(2,4)]) -->
+<!-- plot(st_geometry(roads.geom), col="#666666", lwd = 1.2, add = TRUE) -->
+<!-- plot(st_geometry(river.geom), col="#87cdde", lwd = 3, add = TRUE) -->
+<!-- plot(st_geometry(accidents.2019.paris |> filter(grav == 3 )) , pch = 20, -->
+<!--      col = "orange", add=TRUE, cex = 1) -->
+<!-- plot(st_geometry(accidents.2019.paris |> filter(grav == 2)) , pch = 20, -->
+<!--      col = "red", add=TRUE, cex = 1) -->
+<!-- ``` -->
+
+
+<!-- ## Géocodage -->
+
+<!-- Géocoder c'est **passer d'une adresse** à une **position géographique**. En France, la [Base Adresse Nationale (BAN)](https://adresse.data.gouv.fr/) permet de faire ce travail efficacement. -->
+
+<!-- En R, le package `banR` permet d'interroger l'API de la BAN. Ce package, non présent sur le CRAN, doit être installé via github. Il permet ensuite de géocoder une colonne d'adresses en batch, c’est-à-dire en un nombre minimal de requêtes pour éviter de saturer l’API. Il suffit de spécifier la colonne contenant les adresses, voire éventuellement une colonne contenant le code Insee de la commune du lieu, pour faciliter et préciser la requête. -->
+
+<!-- Pour des adresses internationales, il est possible d'utiliser `tidygeocoder` qui peut interroger différentes API (gratuites ou payantes). Ce package fonctionne de manière assez similaire au précédent. -->
+
+<!-- L’API de `banR` est plus rapide que celle de `tidygeocoder`.  -->
+
+<!-- ```{r p1, eval=TRUE,cache=TRUE, fig.height=4.75} -->
+<!-- # Avec les coordonnées présentes dans la base de données -->
+<!-- geo_bdd <- accidents.2019.paris |>  -->
+<!--   filter(catv %in% c("VAE", "EDP à moteur")) |> slice(1:10) -->
+
+<!-- # Avec banR -->
+<!-- # remotes::install_github("joelgombin/banR") -->
+<!-- library(banR) -->
+<!-- geo_banR <- accidents.2019.paris |>  -->
+<!--   filter(catv %in% c("VAE", "EDP à moteur")) |> slice(1:10) |>  -->
+<!--   geocode_tbl(adresse = voie,code_insee = com) |> -->
+<!--   select(latitude,longitude) |> -->
+<!--   st_as_sf(coords = c("longitude", "latitude"), -->
+<!--            crs = 4326, agr = "constant") |> -->
+<!--   st_transform(2154) -->
+
+<!-- # Avec tidygeocoder -->
+<!-- # install.packages("tidygeocoder") -->
+<!-- library(tidygeocoder) -->
+<!-- geo_tidygeocoder <- accidents.2019.paris |>  -->
+<!--   filter(catv %in% c("VAE", "EDP à moteur")) |> slice(1:10) |> -->
+<!--   mutate(addr = paste(voie, ", Paris, France")) |>   -->
+<!--   geocode(addr,method = "osm") |> select(lat, long) |> -->
+<!--   st_as_sf(coords = c("long", "lat"),crs = 4326, agr = "constant") |> -->
+<!--   st_transform(2154) -->
+
+<!-- ## Distances et distance moyenne entre les trois types de géocodage -->
+<!-- # Entre celui de la base et celui de banR -->
+<!-- st_distance(geo_bdd, geo_banR, by_element = TRUE) -->
+<!-- mean(st_distance(geo_bdd, geo_banR, by_element = TRUE)) -->
+<!-- # Entre celui de la base et celui de tidygeocoder -->
+<!-- st_distance(geo_bdd,geo_tidygeocoder, by_element = TRUE) -->
+<!-- mean(st_distance(geo_bdd, geo_tidygeocoder,by_element = TRUE)) -->
+<!-- # Entre celui de la banR et celui de tidygeocoder -->
+<!-- st_distance(geo_banR, geo_tidygeocoder, by_element = TRUE) -->
+<!-- mean(st_distance(geo_banR, geo_tidygeocoder, by_element = TRUE)) -->
+<!-- ``` -->
+
+# Faire des cartes interactives et statiques
+
+Il s'agit de données ponctuelles stockées dans un fichier csv avec deux colonnes (latitude et longitude en WGS84). Dans ce cas, on importe le csv puis on convertit le `data.frame` en `data.frame` spatial (`sf`) grâce à la fonction `st_as_sf`. Il suffit de spécifier le nom des colonnes contenant les coordonnées ainsi que le CRS. Généralement, on utilisera le code epsg de WGS84 (4326).
+
+```{r, eval=TRUE,cache=FALSE, fig.height=5}
+# Import du dataset
+accidents.2019.paris <- readRDS("data/accidents2019_paris.RDS")
+# Transformation en objet sf
+accidents.2019.paris <- st_as_sf(accidents.2019.paris,
+                                coords = c("long", "lat"),
+                                crs = 4326, agr = "constant") |>
+  st_transform(2154)
+plot(st_geometry(accidents.2019.paris))
+```
+
+
+## Cartes interactives
+
+Plusieurs solutions existent pour faire des cartes interactives avec R. `mapview`, `leaflet` et `mapdeck` sont les principales. Par simplicité, nous nous concentrons ici sur `mapview`.
+
+Les cartes interactives ne sont pas forcément très pertinentes pour représenter des informations géostatistiques. En revanche, elles sont utiles pour explorer les bases de données. Voyons un exemple avec `mapview` concernant les accidents mortels à Paris en 2019. 
+
+```{r, cache=FALSE}
+#remotes::install_github("r-spatial/mapview")
+library(mapview)
+mapviewOptions(fgb = FALSE) #pour marcher avec le format .Rmd
+# construire une carte avec certaines options pour les cercles
+# avec mapview la taille des cercles reste constante quel que soit le zoom. 
+# grav = 2 : individus tués
+individus_tues <- accidents.2019.paris |>
+  filter(grav == 2) |>
+  mutate(age=2019-an_nais) # On ajoute leur âge pour un traitement ultérieur
+mapview(individus_tues)
+```
+
+
+Quand on clique sur un point, la valeur des différentes variables de la base de données apparaissent. Cela peut aider à l'exploration de la base de données.
+
+
+On customise un peu...
+
+
+
+```{r, cache=FALSE}
+mapview(individus_tues,
+        map.types = "Stamen.TonerLite", legend = TRUE,
+        cex = 5, col.regions = "#217844", lwd = 0, alpha = 0.9,
+        layer.name = 'Individus tués')
+```
+
+
+
+On customise encore un peu plus...
+
+Toutefois, ajouter une légende pour la taille des ronds proportionnels ne peut pas être fait facilement. 
+
+
+```{r, cache=FALSE}
+mapview(individus_tues,
+        map.types = "Stamen.TonerLite", legend=TRUE,
+        layer.name = 'Individus tués',
+        cex="age", zcol="sexe", lwd=0, alpha=0.9
+       )
+```
+
+## Cartes statiques avec `ggplot2`
+
+Là encore, différents packages R sont utilisés pour faire des cartes statiques : 
+
+- `ggplot2` est un package très utilisé pour faire tous types de graphiques, et a été adapté spécifiquement aux cartes (`geom_sf`). 
+- Le package `tmap` contient des fonctionnalités avancées basées sur la logique de `ggplot2`
+- `mapsf` (anciennement `cartography`) s'appuie sur un langage dit "base R" et permet de faire des représentations cartographiques, basiques comme avancées.
+
+
+Par simplicité, nous nous concentrons ici sur `ggplot2`, package très renommé pour tous types de graphiques.
+
+## La grammaire des graphiques
+
+- "The Grammar of Graphics" (Wilkinson, Annand and Grossman, 2005)
+- grammaire &#8594; même type de construction / philosophie pour tous les types de graphiques
+
+Composantes de la grammaire :
+
+- données et caractères esthétiques (*aes*)
+
+*Ex : f(data) &#8594; x position, y position, size, shape, color* 
+
+- Objets géométriques
+
+*Ex : points, lines, bars, texts *
+
+- échelles (*scales*)
+
+*Ex : f([0, 100]) &#8594; [0, 5] px*
+
+- Spécification des composantes (*facet*)
+
+*Ex : Segmentation des données suivant un ou plusieurs facteurs*
+
+- Transformation statistique 
+
+*Ex : moyenne, comptage, régression...*
+
+- Le système de coordonnées
+
+
+
+
+<!-- ### Création d'un graphique : -->
+
+<!-- - Ajouts successif de calques (*layers*) ... -->
+<!-- - ... Définissant un *mapping* des données vers leurs représentations -->
+<!-- - (+ optionnel) définition des transformations statistique s -->
+<!-- - (+ optionnel) définition des échelles -->
+<!-- - (+ optionnel) gestion du thème, des titres ... -->
+
+<!-- &#8594; Données toujours sous forme de `data.frame` bien formatées (appelées `tibble`). -->
+
+<!-- Exemple d'un **diagramme en barres** du nombre de personnes accidentées selon le type de véhicule impliqué... -->
+
+<!-- ```{r, fig.height=4.75, cache=FALSE} -->
+<!-- library(ggplot2) -->
+<!-- ggplot(accidents.2019.paris) + -->
+<!--   geom_bar(aes(x = catv,group = sexe,fill = sexe)) -->
+<!-- ``` -->
+
+<!-- ... Qui mérite quelques ajustements pour devenir plus lisible : -->
+
+<!-- - passage en horizontal -->
+<!-- - trié selon le nombre de personnes accidentées -->
+<!-- - ne conserver que les types d'accidents les plus courants -->
+<!-- - changement des couleurs des facteurs -->
+<!-- - changement du thème, titre, sous-titre, note, légende... -->
+
+<!-- ```{r, fig.height=4.75, cache=FALSE} -->
+
+<!-- catv_ol <- accidents.2019.paris |> st_drop_geometry |>  -->
+<!--   count(catv) |> arrange(n) |> pull(catv) -->
+
+<!-- gg <- accidents.2019.paris |>  -->
+<!--   mutate(catv_o = factor(catv,levels = catv_ol)) |> -->
+<!--   filter(catv_o %in% tail(catv_ol, 10)) -->
+
+<!-- ggplot()+geom_bar(data = gg,aes(y = catv_o, group = sexe, fill = sexe))+ -->
+<!--   scale_fill_brewer("Sexe", palette = "Set1")+ -->
+<!--   theme_bw()+ -->
+<!--   labs(title = "Nombre d'accidentés par type de véhicule et sexe", -->
+<!--        subtitle = "à Paris en 2019, pour les hommes et les femmes ", -->
+<!--        caption = "fichier BAAC 2019, ONISR\nantuki & comeetie, 2021", -->
+<!--        x = "", y = "") -->
+<!-- ``` -->
+
+<!-- Un graphique plus exotique : -->
+
+<!-- ```{r, fig.height=4.75, cache=FALSE} -->
+<!-- gg = accidents.2019.paris |>  -->
+<!--   st_drop_geometry |>  -->
+<!--   filter(catv %in% tail(catv_ol,9)) |>  -->
+<!--   count(catv,lum,sexe) |>  -->
+<!--   add_count(catv,wt=n,name="tot") |>  -->
+<!--   mutate(prop = n/tot) -->
+
+<!-- ggplot(gg)+geom_point(aes(y = lum, x = sexe, color = prop, size = prop))+ -->
+<!--   facet_wrap(~catv)+ -->
+<!--   scale_color_distiller(palette = "Reds", direction = 1)+ -->
+<!--   labs(title = "Part d'accidentés par type de véhicule et éclairage", -->
+<!--        subtitle = "à Paris en 2019. ", -->
+<!--        caption = "fichier BAAC 2019, ONISR\nantuki & comeetie, 2021", -->
+<!--        x = "", y = "") -->
+<!-- ``` -->
+
+<!-- Ou bien encore... -->
+
+<!-- ```{r, fig.height=4.75, cache=FALSE} -->
+<!-- library(tidyr) -->
+<!-- catv_sel = c("Bicyclette", "VL seul", "VAE", "VU seul", -->
+<!--              "EDP à moteur", "Scooter < 50 cm3") -->
+
+<!-- gg <- accidents.2019.paris |>  -->
+<!--   st_drop_geometry |>  -->
+<!--   filter(catv %in% catv_sel) |>  -->
+<!--   count(catv,sexe) |> pivot_wider(names_from = "sexe",values_from="n") -->
+
+<!-- ggplot(gg)+ -->
+<!--   geom_segment(aes(x = "Homme", -->
+<!--                    y = `Masculin`, -->
+<!--                    xend = "Femme", -->
+<!--                    yend = `Féminin`, -->
+<!--                    color = catv))+ -->
+<!--   geom_text(data=gg |> filter(catv!="Scooter < 50 cm3"), -->
+<!--             aes(x = "Homme", -->
+<!--                 y = `Masculin`, -->
+<!--                 label = catv, -->
+<!--                 color = catv),hjust="left") + -->
+<!--   geom_text(data=gg |> filter(catv!="VU seul"), -->
+<!--             aes(x = "Femme", -->
+<!--                 y = `Féminin`, -->
+<!--                 label = catv, -->
+<!--                 color=catv),hjust="right") + -->
+<!--   scale_color_discrete(guide ="none") +  -->
+<!--   theme_bw()+ -->
+<!--   labs(title = "Nombre d'accidentés suivant le sexe et le type de véhicule",  -->
+<!--        subtitle = "à Paris en 2019", -->
+<!--        caption = "fichier BAAC 2019, ONISR\nantuki & comeetie, 2021", -->
+<!--        x = "", y = "") -->
+<!-- ``` -->
+
+## Intégrer des données spatiales avec `geom_sf`
+
+Petite introduction / rappel de sémiologie graphique : 
+
+<img src="img/lightsemio.png" alt="Light Semiology" width="100%">
+
+```{r, eval=TRUE,cache=FALSE}
+library(sf)
+library(dplyr)
+# Import de la couche géographique (iris de Paris)
+iris.75 <- st_read("data/iris_75.shp", stringsAsFactors = F)
+```
+
+Comptons par iris le nombre de personnes accidentées (`nbacc`) ;
+
+
+```{r, eval=TRUE,cache=FALSE, fig.height=5}
+inter <- st_intersects(iris.75, accidents.2019.paris)
+inter_blessgravtues <- st_intersects(iris.75, accidents.2019.paris
+                              |> filter(grav%in%c(2,3)))
+iris.75$nbacc <- sapply(X = inter, FUN = length)
+```
+
+### Cartes avec ronds proportionnels
+
+```{r, fig.height=4.75, cache=FALSE}
+library(ggplot2)
+ggplot() +
+  geom_sf(data = iris.75,colour = "ivory3",fill = "ivory") +
+  #geom_sf(data = river.geom, colour = "azure",size=2) +
+  #geom_sf(data = roads.geom, colour = "#666666",size=0.5) +
+  geom_sf(data = iris.75 |>  st_centroid(),
+          aes(size= nbacc), colour="#E84923CC", show.legend = 'point') +
+  scale_size(name = "Nombre d'accidents",
+             breaks = c(1,10,100,200),
+             range = c(0,5)) +
+  coord_sf(crs = 2154, datum = NA,
+           xlim = st_bbox(iris.75)[c(1,3)],
+           ylim = st_bbox(iris.75)[c(2,4)]) +
+  theme_minimal() +
+  theme(panel.background = element_rect(fill = "ivory",color=NA),
+        plot.background = element_rect(fill = "ivory",color=NA)) +
+  labs(title = "Nombre d'accidents de la route à Paris par iris",
+       caption = "fichier BAAC 2019, ONISR\nantuki & comeetie, 2021",x="",y="")
+```
+
+### Cartes choroplèthes
+
+```{r, fig.height=4.75, cache=FALSE}
+library(RColorBrewer) #pour les couleurs des palettes
+
+# Préparation des données
+acc <- iris.75 |> 
+  st_join(accidents.2019.paris) |> 
+  group_by(INSEE_COM, do_union = TRUE) |> 
+  summarize(nb_acc = n(),
+            nb_vl = sum(if_else(catv == "VL seul", 1, 0),
+                        na.rm = TRUE),
+            nb_edp = sum(if_else(catv == "EDP à moteur", 1, 0),
+                         na.rm = TRUE),
+            nb_velo = sum(if_else(catv == "Bicyclette", 1, 0),
+                          na.rm = TRUE)) 
+
+# Choix des breaks
+# (quintiles de la part des accidents ayant eu lieu à vélo)
+bks <- round(quantile(100*acc$nb_velo/acc$nb_acc,
+                         na.rm=TRUE,
+                         probs=seq(0,1,0.2)),1)
+
+# Intégration dans la base de données
+acc <- acc |> mutate(txaccvelo = 100*nb_velo/nb_acc,
+                     txaccvelo_cat = cut(txaccvelo,bks)) 
+
+# Carte
+ggplot() +
+  geom_sf(data = iris.75,colour = "ivory3",fill = "ivory") +
+  geom_sf(data = acc, aes(fill = txaccvelo_cat)) +
+  #geom_sf(data = river.geom, colour = "#87cdde",size=2) +
+  #geom_sf(data = roads.geom, colour = "#666666",size=0.5) +
+  scale_fill_brewer(name = "Part (En %)",
+                    palette = "Reds",
+                    na.value = "grey80") +
+  coord_sf(crs = 2154, datum = NA,
+           xlim = st_bbox(iris.75)[c(1,3)],
+           ylim = st_bbox(iris.75)[c(2,4)]) +
+  theme_minimal() +
+  theme(panel.background = element_rect(fill = "ivory",color=NA),
+        plot.background = element_rect(fill = "ivory",color=NA)) +
+  labs(title = "Part des Accidentés à vélos",
+       subtitle = "par arrondissement à Paris en 2019",
+       caption = "fichier BAAC 2019, ONISR\nantuki & comeetie, 2021",
+       x = "", y = "")
+```
+
+
+<!-- # Un exemple de traitement géomatique avancé -->
+
+<!-- L'objectif de ce traitement est de compter le nombre d'accidents par tronçons de 100m sur le périphérique parisien. -->
+
+<!-- Pour commencer, nous allons extraire des données OSM le squelette du périphérique. Pour ce faire nous allons filtrer le data.frame `roads` à partir d'une liste de noms. Nous aurions pu nous servir d'une petite carte interactive pour trouver cette sélection. -->
+
+<!-- ```{r} -->
+
+<!-- library(dplyr) -->
+<!-- library(sf) -->
+<!-- library(tidygraph) # equivalent dplyr pour les graphes -->
+<!-- library(sfnetworks) # sf + graphes -->
+<!-- library(ggplot2) -->
+
+<!-- # A partir de roads, on garde les routes qui correspondent au périphérique -->
+<!-- periph_simple <- roads |>  -->
+<!--   filter(!is.na(name))|>  -->
+<!--   filter(name %in% c("Boulevard Périphérique Intérieur", "Pont Masséna", -->
+<!--                      "Tunnel Lilas","Pont Amont","Pont Aval")) |>  -->
+<!--   select(name) -->
+
+<!-- plot(periph_simple |> st_geometry(), -->
+<!--      col=1:nrow(periph_simple),lwd=4) -->
+<!-- ``` -->
+
+<!-- C'est un bon début, mais il reste un certains nombre de problèmes : -->
+
+<!-- - Les lignes extraites ne font pas 100m ; -->
+<!-- - Il reste les deux voies parallèles au niveau des tunnels -->
+
+
+<!-- Pour résoudre ces problèmes, nous allons nous servir de la librairie `sfnetwork`. Elle permet de marier des objets `sf` avec une description de leur topologie sous forme de graphe et elle s'appuie pour cela sur la librairie `tidygraph`. Cette description va nous être bien utile pour fusionner toute les lignes qui se touchent en une grande ligne. Commençons par transformer notre data.frame de lignes en un réseau spatial : -->
+
+<!-- ```{r} -->
+<!-- # sfnetwork permet de gérer les réseaux géospatiaux. -->
+<!-- # On transforme periph_simple en ce type d'objet -->
+<!-- net  = as_sfnetwork(st_geometry(periph_simple)) -->
+<!-- plot(net) -->
+<!-- ``` -->
+
+<!-- Nous allons maintenant pouvoir supprimer de ce réseau les noeuds inutiles i.e. ceux qui n'ont que deux voisins : -->
+
+<!-- ```{r} -->
+<!-- # to_spatial_smooth : on enlève les pseudos-noeuds en  -->
+<!-- # préservant la connectivité du réseau -->
+<!-- nets = convert(net,to_spatial_smooth) -->
+<!-- plot(nets) -->
+<!-- ``` -->
+<!-- Cela commence à ressembler à quelque chose. Mais il reste encore quelques liens isolés : -->
+
+<!-- ```{r} -->
+<!-- plot(nets  |>  -->
+<!--        activate(edges) |> -->
+<!--        filter(st_length(x)<units::as_units(1000,"m")) -->
+<!--      ) -->
+<!-- ``` -->
+<!-- Pour les supprimer, nous allons calculer la longueur de chaque lien et ne conserver que ceux qui nous permettent de construire une voie continue autour du périphérique : -->
+
+<!-- ```{r} -->
+<!-- # On calcule la longueur des edges, on trie par ordre décroissant -->
+<!-- nets = nets |>  -->
+<!--   activate(edges) |> #on travaille sur les liens (et non les noeuds) -->
+<!--   mutate(length=st_length(x)) |>  -->
+<!--   arrange(desc(length)) |>  -->
+<!--   mutate(lid=1:n()) |>  -->
+<!--   filter(lid %in% c(1,2,3,5)) #je ne garde que les grands accès -->
+<!-- nets = nets |>  -->
+<!--   activate(nodes) |>  -->
+<!--   mutate(deg=centrality_degree()) |>  -->
+<!--   filter(deg!=0) -->
+<!-- nets -->
+<!-- plot(nets) -->
+<!-- ``` -->
+
+<!-- Nous pouvons maintenant récupérer uniquement la géométrie des liens du réseau, et construire une ligne unique couvrant tout le périphérique : -->
+
+<!-- ```{r} -->
+<!-- #On transforme le tout en lignes -->
+<!-- lines.geom = nets |> activate(edges) |> st_geometry() -->
+<!-- points_ordered = lines.geom[c(2,1,3)] |> st_cast("POINT") -->
+<!-- points_ordered = c(points_ordered,points_ordered[1]) -->
+<!-- line.geom = points_ordered |> st_combine() |> st_cast("LINESTRING") -->
+<!-- line = st_as_sf(line.geom,id=1) -->
+<!-- plot(line) -->
+<!-- ``` -->
+
+<!-- Il reste a découper cette longue ligne en tronçons de 500m. Pour cela, nous allons commencer par créer un ensemble de points distants de 500m le long de la ligne et uniformiser l’échantillonnage de la ligne : -->
+
+<!-- ```{r} -->
+<!-- # On prend une ligne et on met un point tous les 100 mètres -->
+<!-- points_eqd = line.geom  |> st_line_sample(density = 1/10) |> -->
+<!--   st_cast("POINT") -->
+<!-- lines_eqd = line.geom  |> st_line_sample(density = 1/10) |> -->
+<!--   st_cast("LINESTRING") -->
+<!-- split_points = points_eqd[seq(1,length(points_eqd),by=50)] -->
+<!-- plot(points_eqd,pch=20,cex=0.2) -->
+<!-- ``` -->
+
+<!-- Ceci va nous permettre de découper la ligne en tronçons de taille identique : -->
+
+<!-- ```{r} -->
+<!-- # Je découpe ma ligne avec mes points -->
+<!-- troncons.col = lwgeom::st_split(lines_eqd,split_points) -->
+<!-- troncons.geom = st_collection_extract(troncons.col,type = "LINESTRING") -->
+<!-- troncons = st_sf(troncons.geom,id=1:length(troncons.geom)) -->
+<!-- plot(troncons) -->
+<!-- st_length(troncons) -->
+<!-- ``` -->
+
+<!-- Le plus dur est fait. Il ne reste plus qu'à compter et à faire une carte :). Notez le `endCapStyle` sur le `st_buffer` pour ne pas rajouter de marge aux deux extrémités des tronçons : -->
+
+<!-- ```{r} -->
+<!-- # On fait la jointure avec les accidents -->
+<!-- periph_count= troncons  |> st_buffer(100,endCapStyle = 'FLAT') |>  -->
+<!--   st_join(accidents.2019.paris |> filter(!duplicated(Num_Acc))) |>  -->
+<!--   filter(!is.na(Num_Acc)) |>  -->
+<!--   count(id) -->
+
+<!-- # On met la bonne géométrie à periph_count -->
+<!-- st_geometry(periph_count)=troncons.geom[match(periph_count$id,troncons$id)] -->
+
+<!-- # On fait une carte -->
+<!-- ggplot(periph_count) +  -->
+<!--   #ggspatial::annotation_map_tile(zoom=13,type="stamenbw") +  -->
+<!--   geom_sf(data=roads.geom, colour = "#666666",size=0.5)+ -->
+<!--   geom_sf(aes(color=n),size=3)+ -->
+<!--   scale_color_distiller("",palette = "Reds",direction=1)+ -->
+<!--   coord_sf(crs = 2154, datum = NA) + -->
+<!--   theme_minimal() + -->
+<!--   theme(panel.background = element_rect(fill = "white",color=NA), -->
+<!--         plot.background = element_rect(fill = "white",color=NA)) + -->
+<!--   labs(title = "Nombre de personnes accidentées sur le périphérique", -->
+<!--        subtitle = "en 2019, par portion de 500m", -->
+<!--        caption = "fichier BAAC 2019, ONISR\nantuki & comeetie, 2021",x="",y="") -->
+
+<!-- ``` -->
+
+# Pour aller plus loin
+
+## Données raster
+
+- [`stars`](https://github.com/r-spatial/stars/) et [`terra`](https://github.com/rspatial/terra) 
+
+![](https://raw.githubusercontent.com/r-spatial/stars/master/images/cube1.png)
+
+## Géocodage
+
+- [`banR`](https://github.com/joelgombin/banR) et [`tidygeocoder`](https://github.com/jessecambon/tidygeocoder)
+
+```{r}
+library(dplyr, warn.conflicts = FALSE)
+library(tidygeocoder)
+
+# create a dataframe with addresses
+addresses <- tibble::tribble(
+~name,                  ~addr,
+"Campus Hannah-Arendt",          "74 Rue Louis Pasteur, 84029 Avignon",
+"palais des Papes", "Pl. du Palais, 84000 Avignon"                                
+)
+
+# geocode the addresses
+lat_longs <- addresses |>
+  geocode(addr, method = 'osm', lat = latitude , long = longitude)
+lat_longs
+```
+
+
+## Données OSM
+
+- [`osmdata`](https://github.com/ropensci/osmdata)
+
+```{r}
+library(osmdata)
+bb = c(4.75, 43.92, 4.85, 43.97) # Avignon
+roads <- opq (bbox = bb) |> 
+    add_osm_feature (key = "highway") |>
+    osmdata_sf()
+
+
+plot(roads$osm_lines |> dplyr::filter(highway=="primary") |> st_geometry(),lwd=1.5,col="#666666")
+plot(roads$osm_lines |> dplyr::filter(highway=="secondary") |> st_geometry(),lwd=1,add=TRUE,col="#666666")
+plot(roads$osm_lines |> dplyr::filter(highway=="tertiary" | highway=="residential" ) |> st_geometry(),add=TRUE,col="#666666")
+plot(roads$osm_lines |> dplyr::filter(highway=="living_street" ) |> st_geometry(),add=TRUE,col="red")
+
+```
+
+## Réseaux linéaire et graphes
+
+- [`sfnetworks`](https://luukvdmeer.github.io/sfnetworks/) et [`tidygraph`](https://tidygraph.data-imaginist.com/index.html)
+
+```{r}
+library(sfnetworks)
+rtype=c("primary","secondary","tertiary","residential")
+net = sfnetworks::as_sfnetwork(roads$osm_lines|>dplyr::filter(highway %in% rtype))
+plot(net|>activate("edges")|>st_geometry(),col="#666666")
+plot(net|>activate("nodes")|>st_geometry(),col="#444444",cex = 0.2,add=TRUE)
+```
+
+## Lissage spatiale
+
+## Cartographie interactives
+
+- [`mapdeck`](https://github.com/SymbolixAU/mapdeck)
+
+![](https://github.com/SymbolixAU/mapdeck/raw/master/docs/articles/img/articles/hexagons.png)
+
+## Ressources 
+
+[rspatial](https://r-spatial.org/)
+
+[CRAN task views](https://cran.r-project.org/web/views/) permet d'avoir des informations sur les packages du CRAN pertinents pour des tâches reliées à certains sujets. 
+
+[CRAN Task View: Analysis of Spatial Data](https://CRAN.R-project.org/view=Spatial):  
+
+- Classes for spatial data   
+- Handling spatial data   
+- Reading and writing spatial data   
+- Visualisation  
+- Point pattern analysis  
+- Geostatistics  
+- Disease mapping and areal data analysis  
+- Spatial regression  
+- Ecological analysis  
+
+# <small> Crédits et reproductibilité</small> 
+
+
+
+Elle s'inspire, ainsi que son tutoriel, d'une [précédente formation](https://github.com/comeetie/satRday) donnée par les mêmes auteurs avec Timothée Giraud. 
+
+Partage de la configuration de R et des packages utilisés :
+
+```{r}
+sessionInfo()
+```
