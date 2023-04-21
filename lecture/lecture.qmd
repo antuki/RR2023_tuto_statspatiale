@@ -1,8 +1,10 @@
 ---
 title: "**Atelier R** Statistique spatiale et Cartographie"
+subtitle: "**Rencontres R** Juin 2023"
 author: "Kim Antunez, Etienne Côme"
-date: "**Rencontres R** Juin 2023"
 lang: fr
+language:
+ title-block-author-single: Auteurs
 format:
   html:
     toc: true
@@ -15,7 +17,8 @@ format:
 ## Liste des librairies utilisées
 packages <- c("dplyr", "mapview", "sf", "osmdata",
               "RColorBrewer", "ggplot2", "readr",
-              "ggspatial", "sfnetworks", "tidygraph", "remotes")
+              "ggspatial", "sfnetworks", "tidygraph", "remotes", 
+              "tidygeocoder")
 ## Vérifier si la librairie est installée, si non l'installer, puis la charger
 package.check <- lapply(
   packages,
