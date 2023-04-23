@@ -34,9 +34,9 @@ jobs:
           Rscript -e 'install.packages(c("sfnetworks","osmdata","tidygeocoder"))'
           Rscript -e 'install.packages(c("rmarkdown","rmdformats","mapview","quarto"))' #,"quarto"
 
-      - name: Render Rmd
+      - name: Render qmd
         run: |
-          Rscript -e "quarto::quarto_render('lecture/lecture.qmd')"
+          Rscript -e "quarto::quarto_render('lecture/lecture.qmd', output_format = 'all')"
           Rscript -e "quarto::quarto_render('exercises/exercises.qmd')"
 
       - name: Publish html
