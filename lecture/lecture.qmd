@@ -1112,6 +1112,7 @@ plot(net|>activate("nodes")|>st_geometry(),col="red", cex = 0.2,add=TRUE)
 
 Cette formation s'inspire, ainsi que son tutoriel, d'une [précédente formation](https://github.com/comeetie/satRday) donnée par les mêmes auteurs avec Timothée Giraud. 
 
+
 ##
 
 Partage de la configuration de R et des packages utilisés :
