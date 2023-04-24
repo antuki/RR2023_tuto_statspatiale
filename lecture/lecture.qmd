@@ -4,8 +4,6 @@ subtitle: "**Rencontres R** Juin 2023"
 author: "Kim Antunez, Etienne Côme"
 institute: "Timothée Giraud"
 lang: fr
-params:
- code_fold: "true"
 language:
  title-block-author-single: Auteurs
  title-block-affiliation-single: "avec la participation de"

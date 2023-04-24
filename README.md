@@ -6,8 +6,8 @@ Kim Antunez (@antuki) et Etienne Côme (@comeetie)
 
 Cet atelier, animé lors des [rencontres R 2023](https://rr2023.sciencesconf.org/) à Avignon, est composé de deux parties :
 
-- Un [cours magistral](https://antuki.github.io/RR2023_tuto_statspatiale/lecture.html) ;
-- Un [tutoriel](https://antuki.github.io/RR2023_tuto_statspatiale/exercises.html)  
+- Un [tutoriel d'apprentissage](https://antuki.github.io/RR2023_tuto_statspatiale/lecture.html) également disponibles sous forme de [slides](https://antuki.github.io/RR2023_tuto_statspatiale/lecture-slides.html) ;
+- Un [recueil d'exercices](https://antuki.github.io/RR2023_tuto_statspatiale/exercises.html)  
 
 ## Données
 
