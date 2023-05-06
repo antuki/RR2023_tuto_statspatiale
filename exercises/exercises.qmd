@@ -35,7 +35,7 @@ package.check <- lapply(
 
 if (!require("banR", character.only = TRUE)) {
   remotes::install_github("joelgombin/banR")
-  library(x, character.only = TRUE)
+  library("banR", character.only = TRUE)
 }
 
 ```
@@ -319,7 +319,7 @@ Par exemple, vous pouvez utiliser les paramètres `map.types`, `col.regions`, `l
 ::: {.callout-caution collapse="true"}
 ## Solution
 
-```{r, eval = FALSE}
+```{r, eval = TRUE}
 library(mapview)
 library(sf)
 
@@ -346,9 +346,25 @@ m
 :::
 
 
-```{r, eval = FALSE, echo = FALSE}
-m
+```{r, eval = TRUE, echo = FALSE}
+# On sample seulement 100 points pour la taille du fichier pour le html
+mapview(accidents.2019.paris |>
+          sample_n(100) |> ### ICI 
+          mutate(grav_f = factor(grav,
+                         levels = c(2,3,4,1),
+                         labels = c("Tué", "Blessé hospitalisé", 
+                                    "Blessé léger","Indemne")
+                         )),
+        col.regions = c("darkred","red","orange","darkgreen"),
+        label = accidents.2019.paris$Num_Acc, 
+        color = "white", legend = TRUE,
+        zcol="grav_f", alpha=0.9,
+        map.types = "Stamen.TonerLite",
+        layer.name = "Gravite",
+        homebutton = FALSE, lwd = 0.2)
 ```
+
+*Remarque : ici seuls 100 points sont affichés pour alléger le fichier .html*
 
 # Exercice 3 : Cartes `ggplot2` 
  
