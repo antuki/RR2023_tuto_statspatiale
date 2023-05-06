@@ -2,7 +2,7 @@
 title: "**Atelier R** Statistique spatiale et Cartographie"
 subtitle: "**Rencontres R** Juin 2023"
 author: "Kim Antunez, Etienne Côme"
-institute: "Timothée Giraud"
+#institute: "Timothée Giraud"
 lang: fr
 language:
  title-block-author-single: Auteurs
@@ -1001,8 +1001,6 @@ avec le package `btb`
 
 ```{r, fig.height=4.75, cache=FALSE}
 pts <- accidents.2019.paris |>
-  #st_as_sf(coords=c("long","lat"), crs=4326) |>
-  #st_transform(2154) |>
   dplyr::mutate(nb_acc = 1) |>
   dplyr::select(nb_acc)
 smooth_result <- btb::btb_smooth(pts = pts,
