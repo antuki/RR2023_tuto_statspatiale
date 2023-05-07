@@ -236,7 +236,10 @@ plot(pts, pch = 20, col = "red", add=TRUE, cex = 1)
 
 `st_join` permet d'effectuer une jointure spatiale couplée d'une agrégation.
 
-Il est possibile de contrôler finement la jointure (points sur les frontières, ...) avec l'argument `join` qui par défaut est fixé à `st_intersects()`. Voir [ici](https://en.wikipedia.org/wiki/DE-9IM) pour uné définition précise des prédicats spatiaux possibles. 
+
+<small>
+Il est possible de contrôler finement la jointure (points sur les frontières, ...) avec l'argument `join` qui par défaut est fixé à `st_intersects()`. Voir [ici](https://en.wikipedia.org/wiki/DE-9IM) pour uné définition précise des prédicats spatiaux possibles. 
+</small>
 
 ```{r p0a, nm=TRUE}
 mtq_counts <- mtq |>
@@ -1023,7 +1026,7 @@ plot(smooth_result |> dplyr::select(nb_acc), border=NA)
 
 <!-- evaluation désactivée en raison d'un bug de timeout en intégration continue -->
 
-```{r, eval=FALSE}
+```{r, eval=TRUE}
 library(dplyr, warn.conflicts = FALSE)
 library(tidygeocoder)
 
@@ -1036,7 +1039,7 @@ addresses <- tibble::tribble(
 
 # geocode the addresses
 lat_longs <- addresses |>
-  geocode(addr, method = 'osm', lat = latitude , long = longitude)
+  tidygeocoder::geocode(addr, method = 'osm')
 lat_longs
 ```
 
@@ -1063,7 +1066,7 @@ plot(roads$osm_lines |> dplyr::filter(highway=="living_street" ) |> st_geometry(
 ```
 
 
-## Réseaux linéaire et graphes
+## Réseaux linéaires et graphes
 
 - [`sfnetworks`](https://luukvdmeer.github.io/sfnetworks/) et [`tidygraph`](https://tidygraph.data-imaginist.com/index.html)
 
@@ -1076,7 +1079,7 @@ plot(net|>activate("nodes")|>st_geometry(),col="red", cex = 0.2,add=TRUE)
 ```
 
 
-## Cartographie interactives
+## Cartographie interactive
 
 - [`mapdeck`](https://github.com/SymbolixAU/mapdeck)
 

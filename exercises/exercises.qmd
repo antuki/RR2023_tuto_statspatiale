@@ -156,12 +156,13 @@ title("Accidents à Paris")
 ## Question 5
 Effectuez au moins l'un de ces traitement géomatiques : 
 
-1. Créez un polygone avec le contour de Paris en agrégeant les iris de Paris (union simple)
+1. Créer un polygone avec le contour de Paris en agrégeant les iris de Paris (union simple)
 2. Faire une zone tampon de 1km autour de celui-ci
 3. Extraire les centroïdes des iris
-4. Calculez les distances entre les centroïdes des iris
-5. Calculez les polygones de Voronoï autour des centroïdes des iris
-6. Affichez les différentes couches créées 
+4. Calculer les distances entre les centroïdes des iris
+5. Calculer les polygones de Voronoï autour des centroïdes des iris
+
+Affichez les différentes couches créées 
 
 :::
 
@@ -188,7 +189,7 @@ iris.75.v <- st_intersection(iris.75.v,iris.75.u)
 ```
 
 ```{r, eval = FALSE}
-# 6. Affichage des cartes
+# Affichage des cartes
 plot(st_geometry(iris.75.b), lwd=2, border ="red",col=NA)
 plot(st_geometry(iris.75),  ltw=5, col="#999999", add = TRUE)
 plot(st_geometry(iris.75.u), border="blue", ltw=5, col=NA, add = TRUE)
@@ -211,7 +212,7 @@ plot(st_geometry(iris.75.v),  ltw=5, col=NA,border="blue", add = TRUE)
 ## Question 6
 Créez une couche cartographique ‘accidents.2019.paris.iris‘ des IRIS qui compte le nombre de personnes accidentées par iris ainsi que le nombre de personnes accidentées mais non blessées. 
 
-Conservez dans cette couche cartographique le code de l'arrondissement.
+Conservez dans cette couche cartographique le code de l'arrondissement parisien.
 :::
 
 
@@ -254,7 +255,7 @@ str(accidents.2019.paris.iris)
 # agrégation par CODE_IRIS
 accidents.2019.paris.iris <- accidents.2019.paris.iris |> 
   # Pour accélérer le traitement : On peut supprimer la géométrie
-  # des IRIS avant l'agrégation et la re-rajouter par la suite
+  # des IRIS avant l'agrégation et la rajouter par la suite
   st_drop_geometry() |>
   group_by(CODE_IRIS) |> 
   summarise(nbacc=n(), nbaccnb =  sum(grav==1)) |>
@@ -269,7 +270,7 @@ head(accidents.2019.paris.iris)
 
 ::: {.callout-note icon=false}
 ## Question 7
-Utilisez la couche ‘accidents.2019.paris.iris’, pour créer une nouvelle couche cartographique agrégée appelée ‘accidents.2019.paris.arr’ qui correspond aux ‘arrondissements’ de Paris.
+Utilisez la couche ‘accidents.2019.paris.iris’, pour créer une nouvelle couche cartographique agrégée appelée ‘accidents.2019.paris.arr’ qui correspond aux arrondissements de Paris.
 
 Gardez aussi dans cette nouvelle couche l'information sur le nombre de personnes accidentées et le nombre de personnes accidentées non blessées dans chaque arrondissement.
 :::
@@ -674,8 +675,8 @@ Cartographiez le nombre de personnes accidentées de la base 'accidents.2019.par
 ## Indice 
 Utilisez successivement les fonctions :
 
-`btb::btb_add_centroids` pour associer à chaque point le centroïde de son futur carreau
-`dplyr::count` pour compter le nombre d'accidents en `group_by(x_centro, y_centro)`
+- `btb::btb_add_centroids` pour associer à chaque point le centroïde de son futur carreau
+- `dplyr::count` pour compter le nombre d'accidents avec un `group_by(x_centro, y_centro)`
 - `btb::btb_ptsToGrid` pour transformer les données en grille
 :::
 
@@ -712,7 +713,7 @@ mf_layout(
 
 ::: {.callout-note icon=false}
 ## Question 2
-Cartographiez le nombre de personnes accidentées de la base 'accidents.2019.paris' dans des cellules de 500m de côté **avec un lissage à 2km**
+Cartographiez le nombre de personnes accidentées de la base 'accidents.2019.paris' dans des cellules de 500m de côté **avec un lissage à 1km**
 :::
 
 ::: {.callout-tip collapse="true"}
@@ -784,6 +785,7 @@ Utilisez la fonction `ggplot2::geom_barplot()` pour faire un diagramme en barres
 :::
 
 ::: {.callout-caution collapse="true"}
+## Solution
 ```{r}
 # 1. Ne garder que les véhicules +100 personnes accidentées
 vehic_plus100_accidents <- accidents.2019.paris %>% st_drop_geometry %>% 

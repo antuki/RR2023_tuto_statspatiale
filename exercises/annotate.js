@@ -2,10 +2,11 @@ var RoughNotation=function(t){"use strict";const e="http://www.w3.org/2000/svg";
 
 const annotate = RoughNotation.annotate;
 document.addEventListener("DOMContentLoaded", function(event) {
-var highlightedItems_box = document.querySelectorAll("pre code, #TOC, .box, thead");
-var highlightedItems_underline = document.querySelectorAll("h2, .underline, tr");
+//var highlightedItems_box = document.querySelectorAll("pre code, #TOC, .box, thead");
+var highlightedItems_box = document.querySelectorAll("#TOC, .box, thead");
+//var highlightedItems_underline = document.querySelectorAll("h2, .underline, tr");
 var highlightedItems_highlight = document.querySelectorAll(".quarto-title-meta-heading, .highlight");
-var highlightedItems_grey = document.querySelectorAll("pre.sourceCode");
+//var highlightedItems_grey = document.querySelectorAll("pre.sourceCode");
 var highlightedItems_bracket = document.querySelectorAll("blockquote");
 var highlightedItems_strike = document.querySelectorAll(".strike");
 var highlightedItems_cross = document.querySelectorAll(".cross");
@@ -15,17 +16,17 @@ highlightedItems_box.forEach(function(userItem) {
   annotate(userItem, { type: 'box', color: 'black' , animate: false, strokeWidth: 0.5}).show();
 });
 
-highlightedItems_underline.forEach(function(userItem) {
-  annotate(userItem, { type: 'underline', color: 'black' , animate: false, strokeWidth: 1}).show();
-});
+//highlightedItems_underline.forEach(function(userItem) {
+//  annotate(userItem, { type: 'underline', color: 'black' , animate: false, strokeWidth: 1}).show();
+//});
 
 highlightedItems_highlight.forEach(function(userItem) {
   annotate(userItem, { type: 'highlight', color: '#FFF176' , animate: false}).show();
 });
 
-highlightedItems_grey.forEach(function(userItem) {
-  annotate(userItem, { type: 'highlight', color: '#d3d3d3' , animate: false}).show();
-});
+//highlightedItems_grey.forEach(function(userItem) {
+//  annotate(userItem, { type: 'highlight', color: '#d3d3d3' , animate: false}).show();
+//});
 
 highlightedItems_bracket.forEach(function(userItem) {
   annotate(userItem, { type: 'bracket', color: '#666666' , brackets: 'left',animate: false}).show();
