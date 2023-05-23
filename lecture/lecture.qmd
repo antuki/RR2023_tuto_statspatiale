@@ -586,7 +586,7 @@ Là encore, différents packages R sont utilisés pour faire des cartes statique
 
 - `ggplot2` est un package très utilisé pour faire tous types de graphiques, et a été adapté spécifiquement aux cartes (`geom_sf`). 
 - Le package `tmap` contient des fonctionnalités avancées basées sur la logique de `ggplot2`
-- `mapsf` (anciennement `cartography`) s'appuie sur un langage dit "base R" et permet de faire des représentations cartographiques, basiques comme avancées.
+- `mapsf` (successeur de `cartography`) s'appuie sur un langage dit "base R" et permet de faire des représentations cartographiques, basiques comme avancées.
 
 ## 
 
