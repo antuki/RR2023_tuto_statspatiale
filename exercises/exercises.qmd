@@ -473,7 +473,7 @@ Réalisez cette même carte avec le package `mapsf`.
 
 ```{r, eval = FALSE}
 library(mapsf)
-mf_theme("ink")
+mf_theme("default",cex=0.9,mar=c(0,0,1.2,0),bg="ivory")
 #mf_init(x = com.75, theme = "ink", expandBB = c(0, 0, 0, .15))
 mf_map(
   x = com.75,
@@ -512,7 +512,7 @@ mf_layout(
 ```{r, echo = FALSE, warning = FALSE, error = FALSE, message = FALSE}
 library(mapsf)
 centro <- com.75 |>  st_centroid()
-mf_theme("ink")
+mf_theme("default",cex=0.9,mar=c(0,0,1.2,0),bg="ivory")
 #mf_init(x = com.75, theme = "ink", expandBB = c(0, 0, 0, .15))
 mf_map(
   x = com.75,
@@ -694,7 +694,8 @@ carreaux <- btb::btb_ptsToGrid(pts = points_centroides,
                                sEPSG = "2154", iCellSize = 500)
 # On cartographie
 library(mapsf)
-mf_init(x=carreaux,theme = "ink")
+mf_theme("default",cex=0.9,mar=c(0,0,1.2,0),bg="ivory")
+mf_init(x=carreaux)
 mf_map(x = carreaux,
        type = "choro",
        var="nbacc",
@@ -733,7 +734,8 @@ carreaux_lisses <- btb::btb_smooth(
 
 ```{r, eval = FALSE}
 # Cartographie
-mf_init(x = carreaux_lisses, theme = "ink")
+mf_theme("default",cex=0.9,mar=c(0,0,1.2,0),bg="ivory")
+mf_init(x=carreaux)
 mf_map(x = carreaux_lisses, 
        type = "choro",
        var="nbacc",
@@ -752,7 +754,8 @@ mf_layout(
   
 ```{r, echo = FALSE}
 # Cartographie
-mf_init(x = carreaux_lisses, theme = "ink")
+mf_theme("default",cex=0.9,mar=c(0,0,1.2,0),bg="ivory")
+mf_init(x=carreaux)
 mf_map(x = carreaux_lisses, 
        type = "choro",
        var="nbacc",

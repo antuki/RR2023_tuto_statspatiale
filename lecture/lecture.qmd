@@ -105,6 +105,12 @@ st_write(mtq,"data/mtq/martinique.gpkg",delete_layer = TRUE)
 ```
 
 Le format gpkg (geopackage) est ouvert (non lié à un système d’exploitation) et implémenté sous la forme d’une base de données SQLite.
+ 
+
+<small>
+Noter également l'existence du format geo-parquet extrêmement efficace pour traiter de gros volume de données spatiales.
+</small>
+  
 
 ## Système de coordonnées
 
@@ -775,8 +781,8 @@ library(ggplot2)
 ggplot() +
   geom_sf(data = acc_iris, colour = "ivory3", fill = "ivory") +
   geom_sf(data = acc_iris |>  st_centroid(),
-          aes(size= nb_acc_grav), colour="#E84923CC", show.legend = 'point') +
-  scale_size(name = "Nombre d'accidents graves",
+          aes(size= nb_acc), colour="#E84923CC", show.legend = 'point') +
+  scale_size(name = "Nombre d'accidents",
              breaks = c(1,10,100,200),
              range = c(0,5)) +
    coord_sf(crs = 2154, datum = NA,
@@ -784,8 +790,8 @@ ggplot() +
             ylim = st_bbox(iris.75)[c(2,4)]) +
   theme_minimal() +
   theme(panel.background = element_rect(fill = "ivory",color=NA),
-        plot.background = element_rect(fill = "ivory",color=NA)) +
-  labs(title = "Nombre d'accidents graves de la route à Paris par iris",
+        plot.background = element_rect(fill = "ivory",color=NA),legend.position = "bottom") +
+  labs(title = "Nombre d'accidents de la route à Paris par iris",
        caption = "fichier BAAC 2019, ONISR\nantuki & comeetie, 2023",x="",y="")
 ```
 
@@ -798,12 +804,11 @@ ggplot() +
 
 library(RColorBrewer) #pour les couleurs des palettes
 # Quintiles de la part des accidents ayant eu lieu à vélo
-bks <- unique(round(quantile(100*acc_iris$nb_velo/acc_iris$nb_acc,
-                         na.rm=TRUE,
-                         probs=seq(0,1,0.1)),1))
+perc_velo = 100*acc_iris$nb_velo/acc_iris$nb_acc
+bks <- c(0,round(quantile(perc_velo[perc_velo!=0],na.rm=TRUE,probs=seq(0,1,0.25)),1))
 # Intégration dans la base de données
 acc_iris <- acc_iris |> mutate(txaccvelo = 100*nb_velo/nb_acc,
-                     txaccvelo_cat = cut(txaccvelo,bks)) 
+                     txaccvelo_cat = cut(txaccvelo,bks,include.lowest = TRUE)) 
 
 # Carte
 ggplot() +
@@ -817,7 +822,7 @@ ggplot() +
            ylim = st_bbox(iris.75)[c(2,4)]) +
   theme_minimal() +
   theme(panel.background = element_rect(fill = "ivory",color=NA),
-        plot.background = element_rect(fill = "ivory",color=NA)) +
+        plot.background = element_rect(fill = "ivory",color=NA),legend.position="bottom") +
   labs(title = "Part des Accidentés à vélos",
        subtitle = "par arrondissement à Paris en 2019",
        caption = "fichier BAAC 2019, ONISR\nantuki & comeetie, 2023",
@@ -833,27 +838,27 @@ Ci-dessous un exemple de carte similaire réalisée avec la syntaxe de la librai
 #| code-fold: !expr code_folding
 
 library(mapsf)
-mf_theme("ink")
+mf_theme("default",cex=0.9,mar=c(0,0,1.2,0),bg="ivory")
 mf_init(x = acc_iris, expandBB = c(0, 0, 0, .15)) 
-mf_map(acc_iris, colour = "ivory3", fill = "ivory", add = TRUE)
+mf_map(acc_iris,add = TRUE,col = "ivory2")
 # Plot symbols with choropleth coloration
 mf_map(
   x = acc_iris |>  st_centroid(),
-  var = c("nb_acc_grav", "txaccvelo"),
+  var = c("nb_acc", "txaccvelo"),
   type = "prop_choro",
   border = "grey50",
   lwd = 0.1,
   leg_pos = c("topright","right"),
-  leg_title = c("Nombre d'accidents graves", "Part des accidentés à vélo"),
-  breaks = "equal",
+  leg_title = c("Nombre d'accidents", "Part des accidentés à vélo"),
+  breaks = c(0,8,15,25,100),
   nbreaks = 5,
-  inches= 0.2,
+  inches= 0.16,
   pal = "Reds",
   leg_val_rnd = c(0, 0),
   leg_frame = c(TRUE, TRUE)
 )
 mf_layout(
-  title = "Nombre d'accidents de la route à Paris par iris par arrondissement à Paris en 2019",
+  title = "Nombre d'accidents de la route et proportions d'accidents impliquant des vélos",
   credits = "fichier BAAC 2019, ONISR\nantuki & comeetie, 2023",
   frame = TRUE)
 ```
