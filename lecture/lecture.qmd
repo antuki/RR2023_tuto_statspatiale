@@ -108,7 +108,7 @@ Le format gpkg (geopackage) est ouvert (non lié à un système d’exploitation
  
 
 <small>
-Noter également l'existence du format geo-parquet extrêmement efficace pour traiter de gros volume de données spatiales.
+Noter également l'existence du format GeoParquet extrêmement efficace pour traiter de gros volumes de données spatiales.
 </small>
   
 
@@ -244,7 +244,7 @@ plot(pts, pch = 20, col = "red", add=TRUE, cex = 1)
 
 
 <small>
-Il est possible de contrôler finement la jointure (points sur les frontières, ...) avec l'argument `join` qui par défaut est fixé à `st_intersects()`. Voir [ici](https://en.wikipedia.org/wiki/DE-9IM) pour uné définition précise des prédicats spatiaux possibles. 
+Il est possible de contrôler finement la jointure (points sur les frontières, ...) avec l'argument `join` qui par défaut est fixé à `st_intersects()`. Voir [ici](https://en.wikipedia.org/wiki/DE-9IM) pour une définition précise des prédicats spatiaux possibles. 
 </small>
 
 ```{r p0a, nm=TRUE}
@@ -823,7 +823,7 @@ ggplot() +
   theme_minimal() +
   theme(panel.background = element_rect(fill = "ivory",color=NA),
         plot.background = element_rect(fill = "ivory",color=NA),legend.position="bottom") +
-  labs(title = "Part des Accidentés à vélos",
+  labs(title = "Part des accidentés à vélos",
        subtitle = "par arrondissement à Paris en 2019",
        caption = "fichier BAAC 2019, ONISR\nantuki & comeetie, 2023",
        x = "", y = "")
@@ -858,7 +858,7 @@ mf_map(
   leg_frame = c(TRUE, TRUE)
 )
 mf_layout(
-  title = "Nombre d'accidents de la route et proportions d'accidents impliquant des vélos",
+  title = "Nombre d'accidents de la route et proportion d'accidents impliquant des vélos",
   credits = "fichier BAAC 2019, ONISR\nantuki & comeetie, 2023",
   frame = TRUE)
 ```
