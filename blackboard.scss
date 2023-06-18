@@ -1,0 +1,33 @@
+/*-- scss:defaults --*/
+/* fonts */
+@import url('https://fonts.googleapis.com/css2?family=Pangolin&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Shadows+Into+Light&display=swap');
+
+$font-family-sans-serif: 'Pangolin', sans-serif !default;
+$presentation-heading-font: 'Shadows Into Light', sans-serif !default;
+   
+// colors
+$body-bg: #333333 !default; /*!default;*/
+$body-color: white !default;
+$link-color: $body-color !default;
+
+$code-block-border-color: transparent !default;
+
+
+
+/*-- scss:rules --*/
+body {
+	background: url('figures/blackboard.png');
+	background-size: cover;
+}
+
+/*Background image*/
+pre > code.sourceCode > span {
+ font-family: 'Pangolin';
+}
+
+/*.saut-page{
+  color: white;
+  margin:0;
+  padding: 0;
+}*/
